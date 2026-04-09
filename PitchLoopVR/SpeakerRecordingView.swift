@@ -49,6 +49,11 @@ struct SpeakerRecordingView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationBarBackButtonHidden(true)
+
+        // Navigation to next screen
+        .navigationDestination(isPresented: $goToNext) {
+            SpeakerReadyView()
+        }
     }
 
     private var header: some View {
@@ -68,28 +73,32 @@ struct SpeakerRecordingView: View {
         HStack {
             Spacer()
 
-            HStack(spacing: 14) {
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(Color.white.opacity(0.95))
-                    .frame(width: 14, height: 14)
+            Button {
+                goToNext = true
+            } label: {
+                HStack(spacing: 14) {
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(Color.white.opacity(0.95))
+                        .frame(width: 14, height: 14)
 
-                Text("Begin")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.95))
+                    Text("Begin")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.95))
+                }
+                .padding(.horizontal, 26)
+                .frame(height: 52)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.white.opacity(0.16))
+                )
             }
-            .padding(.horizontal, 26)
-            .frame(height: 52)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.16))
-            )
 
             Spacer()
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 16)
     }
-
+    
     private var pageIndicator: some View {
         HStack(spacing: 10) {
             Circle()
