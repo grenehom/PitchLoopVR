@@ -14,7 +14,7 @@ struct PitchLoopVRApp: App {
     @State private var avPlayerViewModel = AVPlayerViewModel()
  // WindowGroup handles the large background handled in the room. Floating behavior 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             if avPlayerViewModel.isPlaying {
                 AVPlayerView(viewModel: avPlayerViewModel)
             } else {
@@ -22,7 +22,19 @@ struct PitchLoopVRApp: App {
                     .environment(appModel)
             }
         }
-        
+        .windowResizability(.contentSize)
+
+        WindowGroup(id: "cue-preview") {
+            CuePreviewView()
+        }
+        .defaultWindowPlacement { _, context in
+            if let mainWindow = context.windows.first(where: { $0.id == "main" }) {
+                return WindowPlacement(.above(mainWindow))
+            }
+            return WindowPlacement()
+        }
+        .defaultSize(CGSize(width: 342, height: 110))
+
         ImmersiveSpace(id: appModel.immersiveSpaceID) {
             ImmersiveView()
                 .environment(appModel)
@@ -35,6 +47,5 @@ struct PitchLoopVRApp: App {
                     avPlayerViewModel.reset()
                 }
         }
-        .immersionStyle(selection: .constant(.full), in: .full)
-    }
+        .immersionStyle(selection: .constant(.full), in: .full)    }
 }

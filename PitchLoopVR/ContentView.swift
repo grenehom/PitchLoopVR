@@ -5,6 +5,8 @@ struct ContentView: View {
         NavigationStack {
             RoleSelectionView()
         }
+        .frame(width: 726, height: 281)
+        .fixedSize()
     }
 }
 

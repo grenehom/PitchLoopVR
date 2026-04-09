@@ -5,34 +5,26 @@ struct SpeakerFeedbackView: View {
     @State private var goToNext = false
     
     var body: some View {
-        VStack {
-            Spacer()
+        VStack(spacing: 18) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 38, weight: .regular))
+                .foregroundStyle(.blue)
 
-            VStack(spacing: 18) {
-                Image(systemName: "info.circle.fill")
-                    .font(.system(size: 38, weight: .regular))
-                    .foregroundStyle(.blue)
+            Text("Before you begin")
+                .font(.system(size: 26, weight: .bold))
+                .foregroundStyle(.primary)
 
-                Text("Before you begin")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(.primary)
+            Text("You’ll receive feedback as you speak.\nSubtle cues will help you adjust in the moment.")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .frame(maxWidth: 460)
 
-                Text("You’ll receive feedback as you speak.\nSubtle cues will help you adjust in the moment.")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(3)
-                    .frame(maxWidth: 460)
-
-                Text("tap to continue")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 30)
-            }
-
-            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: 640)
         .overlay(alignment: .topTrailing) {
             Button(action: {
                 dismiss()
@@ -43,8 +35,8 @@ struct SpeakerFeedbackView: View {
                     .frame(width: 32, height: 32)
             }
             .buttonStyle(.plain)
-            .padding(.top, 28)
-            .padding(.trailing, 28)
+            .padding(.top, 12)
+            .padding(.trailing, 12)
         }
         .contentShape(Rectangle())
         .onTapGesture {
