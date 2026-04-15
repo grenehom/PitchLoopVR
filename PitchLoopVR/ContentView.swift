@@ -1,12 +1,95 @@
 import SwiftUI
 
+enum AppScreen {
+    case roleSelection
+    case speakerFeedback
+    case speakerCueInstruction
+    case speakerStartSession
+    case speakerCountdown
+    case speakerSession
+    case speakerRecording
+    case audienceOnboarding
+    case audienceFeedback
+}
+
 struct ContentView: View {
+    @State private var screen: AppScreen = .roleSelection
+    @Environment(\.openWindow) private var openWindow
+
+    private var showCue: Bool {
+        screen == .speakerCueInstruction || screen == .speakerRecording
+    }
+
     var body: some View {
-        NavigationStack {
-            RoleSelectionView()
+        Group {
+            switch screen {
+        case .roleSelection:
+            RoleSelectionView { role in
+                screen = (role == .audience) ? .audienceOnboarding : .speakerFeedback
+            }
+            .frame(width: 726, height: 281)
+            .fixedSize()
+
+        case .speakerFeedback:
+            SpeakerFeedbackView(
+                onDismiss: { screen = .roleSelection },
+                onNext: { screen = .speakerCueInstruction }
+            )
+            .frame(width: 640, height: 280)
+            .fixedSize()
+
+        case .speakerCueInstruction:
+            SpeakerCueInstructionView(
+                onDismiss: { screen = .roleSelection },
+                onNext: { screen = .speakerStartSession }
+            )
+            .frame(width: 640, height: 280)
+            .fixedSize()
+
+        case .speakerStartSession:
+            SpeakerStartSessionView(onNext: { screen = .speakerCountdown })
+                .frame(width: 640)
+                .fixedSize()
+
+        case .speakerCountdown:
+            SpeakerCountdownView(onNext: { screen = .speakerSession })
+                .frame(width: 400, height: 300)
+                .fixedSize()
+
+        case .speakerSession:
+            Color.clear
+                .frame(width: 1, height: 1)
+                .fixedSize()
+
+        case .speakerRecording:
+            SpeakerRecordingView()
+                .frame(width: 600, height: 700)
+                .fixedSize()
+
+        case .audienceOnboarding:
+            AudienceOnboardingView(
+                onDismiss: { screen = .roleSelection },
+                onNext: {
+                    screen = .audienceFeedback
+                    openWindow(id: "audience-feedback")
+                }
+            )
+            .frame(width: 640, height: 280)
+            .fixedSize()
+
+        case .audienceFeedback:
+            Color.clear
+                .frame(width: 1, height: 1)
+                .fixedSize()
+            }
         }
-        .frame(width: 726, height: 281)
-        .fixedSize()
+        .ornament(
+            visibility: showCue ? .visible : .hidden,
+            attachmentAnchor: .scene(.top),
+            contentAlignment: .bottom
+        ) {
+            CuePreviewView()
+        }
     }
 }
 
@@ -16,8 +99,8 @@ enum UserRole: String {
 }
 
 struct RoleSelectionView: View {
+    let onNavigate: (UserRole) -> Void
     @State private var selectedRole: UserRole? = nil
-    @State private var goToNext = false
 
     var body: some View {
         VStack(spacing: 54) {
@@ -32,7 +115,7 @@ struct RoleSelectionView: View {
                     isSelected: selectedRole == .speaker
                 ) {
                     selectedRole = .speaker
-                    goToNext = true
+                    onNavigate(.speaker)
                 }
 
                 RoleButton(
@@ -40,19 +123,12 @@ struct RoleSelectionView: View {
                     isSelected: selectedRole == .audience
                 ) {
                     selectedRole = .audience
-                    goToNext = true
+                    onNavigate(.audience)
                 }
             }
         }
         .frame(maxWidth: 520)
         .padding()
-        .navigationDestination(isPresented: $goToNext) {
-            if selectedRole == .audience {
-                AudienceFeedbackView()
-            } else {
-                SpeakerFeedbackView()
-            }
-        }
     }
 }
 

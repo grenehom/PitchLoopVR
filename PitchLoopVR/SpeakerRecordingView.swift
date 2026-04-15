@@ -8,9 +8,6 @@
 import SwiftUI
 
 struct SpeakerRecordingView: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var goToNext = false
-
     var body: some View {
         VStack {
             Spacer()
@@ -48,7 +45,6 @@ struct SpeakerRecordingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .navigationBarBackButtonHidden(true)
     }
 
     private var header: some View {
@@ -104,7 +100,7 @@ struct SpeakerRecordingView: View {
 }
 
 #Preview {
-    NavigationStack {
-        SpeakerRecordingView()
-    }
+    SpeakerRecordingView()
+        .frame(width: 600, height: 700)
+        .fixedSize()
 }

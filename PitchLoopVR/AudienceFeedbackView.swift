@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AudienceFeedbackView: View {
-    @Environment(\.dismiss) private var dismiss
+    let onDismiss: () -> Void
 
     let feedbackItems: [AudienceFeedbackItem] = [
         AudienceFeedbackItem(icon: "eye", label: "Eye Contact"),
@@ -95,16 +95,13 @@ struct AudienceFeedbackView: View {
             }
         }
         .padding()
-        .navigationBarBackButtonHidden(true)
     }
 
     private var topBar: some View {
         HStack {
             Spacer()
 
-            Button(action: {
-                dismiss()
-            }) {
+            Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.primary.opacity(0.7))
@@ -178,7 +175,5 @@ enum FeedbackStatus {
 }
 
 #Preview {
-    NavigationStack {
-        AudienceFeedbackView()
-    }
+    AudienceFeedbackView(onDismiss: {})
 }

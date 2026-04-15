@@ -8,10 +8,8 @@
 import SwiftUI
 
 struct SpeakerCueInstructionView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.openWindow) private var openWindow
-    @Environment(\.dismissWindow) private var dismissWindow
-    @State private var goToNext = false
+    let onDismiss: () -> Void
+    let onNext: () -> Void
 
     var body: some View {
         ZStack {
@@ -35,12 +33,12 @@ struct SpeakerCueInstructionView: View {
                 }
                 .padding(.horizontal, 40)
                 .padding(.vertical, 34)
-                .frame(width: 700, height: 250)
+                .frame(maxWidth: 600)
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(alignment: .topTrailing) {
-                Button(action: { dismiss() }) {
+                Button(action: onDismiss) {
                     Image(systemName: "xmark")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(.primary.opacity(0.9))
@@ -52,26 +50,17 @@ struct SpeakerCueInstructionView: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture { goToNext = true }
-        .onAppear { openWindow(id: "cue-preview") }
-        .onDisappear { dismissWindow(id: "cue-preview") }
-        .navigationDestination(isPresented: $goToNext) {
-            SpeakerRecordPromptView()
-        }
-        .navigationBarBackButtonHidden(true)
+        .onTapGesture { onNext() }
         .ornament(attachmentAnchor: .scene(.bottom), contentAlignment: .top) {
             Text("tap to continue")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.secondary)
         }
     }
-
 }
 
 #Preview {
-    NavigationStack {
-        SpeakerCueInstructionView()
-    }
-    .frame(width: 726, height: 281)
-    .fixedSize()
+    SpeakerCueInstructionView(onDismiss: {}, onNext: {})
+        .frame(width: 726, height: 420)
+        .fixedSize()
 }
