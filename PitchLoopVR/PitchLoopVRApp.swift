@@ -17,6 +17,13 @@ struct PitchLoopVRApp: App {
         WindowGroup(id: "main") {
             ContentView()
                 .environment(appModel)
+                .environment(audienceFeedbackModel)
+        }
+        .windowResizability(.contentSize)
+
+        WindowGroup(id: "live-question") {
+            FeedbackQuestionView()
+                .environment(audienceFeedbackModel)
         }
         .windowResizability(.contentSize)
 
@@ -32,11 +39,6 @@ struct PitchLoopVRApp: App {
             return WindowPlacement()
         }
 
-        WindowGroup(id: "feedback-question") {
-            FeedbackQuestionView()
-                .environment(audienceFeedbackModel)
-        }
-        .windowResizability(.contentSize)
 
     }
 }

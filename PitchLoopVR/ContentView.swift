@@ -9,12 +9,16 @@ enum AppScreen {
     case speakerSession
     case speakerRecording
     case audienceOnboarding
+    case audienceReminder
+    case audienceReady
+    case audienceWaiting
     case audienceFeedback
 }
 
 struct ContentView: View {
     @State private var screen: AppScreen = .roleSelection
     @Environment(\.openWindow) private var openWindow
+    @Environment(AudienceFeedbackModel.self) private var feedbackModel
 
     private var showCue: Bool {
         screen == .speakerCueInstruction || screen == .speakerRecording
@@ -70,6 +74,10 @@ struct ContentView: View {
             AudienceOnboardingView(
                 onDismiss: { screen = .roleSelection },
                 onNext: {
+                    feedbackModel.isTutorialMode = true
+                    feedbackModel.tutorialStep = 0
+                    feedbackModel.tutorialComplete = false
+                    feedbackModel.liveSessionStarted = false
                     screen = .audienceFeedback
                     openWindow(id: "audience-feedback")
                 }
@@ -77,11 +85,44 @@ struct ContentView: View {
             .frame(width: 640, height: 280)
             .fixedSize()
 
+        case .audienceReminder:
+            AudienceReminderView(
+                onDismiss: { screen = .roleSelection },
+                onNext: { screen = .audienceReady }
+            )
+            .frame(width: 640, height: 280)
+            .fixedSize()
+
+        case .audienceReady:
+            AudienceReadyView(
+                onDismiss: { screen = .roleSelection },
+                onBack: { screen = .audienceReminder },
+                onReady: { screen = .audienceWaiting }
+            )
+            .frame(width: 640)
+            .fixedSize()
+
+        case .audienceWaiting:
+            AudienceWaitingView(onNext: {
+                feedbackModel.liveSessionStarted = true
+                screen = .audienceFeedback
+            })
+            .fixedSize()
+
         case .audienceFeedback:
-            Color.clear
-                .frame(width: 1, height: 1)
-                .fixedSize()
+            if feedbackModel.isTutorialMode && feedbackModel.activeFeedbackItem != nil {
+                FeedbackQuestionView()
+                    .frame(width: 360)
+                    .fixedSize()
+            } else {
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .fixedSize()
             }
+            }
+        }
+        .onChange(of: feedbackModel.tutorialComplete) { _, complete in
+            if complete { screen = .audienceReminder }
         }
         .ornament(
             visibility: showCue ? .visible : .hidden,
