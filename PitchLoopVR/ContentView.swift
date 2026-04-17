@@ -1,4 +1,6 @@
 import SwiftUI
+import RealityKit
+
 
 enum AppScreen {
     case roleSelection
@@ -14,7 +16,10 @@ enum AppScreen {
 
 struct ContentView: View {
     @State private var screen: AppScreen = .roleSelection
+    
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openImmersiveSpace) private var openImmersiveSpace
+    @Environment(AppModel.self) private var appModel
 
     private var showCue: Bool {
         screen == .speakerCueInstruction || screen == .speakerRecording
@@ -29,6 +34,9 @@ struct ContentView: View {
             }
             .frame(width: 726, height: 281)
             .fixedSize()
+        
+        case .speakerSession:
+            Color.clear
 
         case .speakerFeedback:
             SpeakerFeedbackView(
@@ -54,11 +62,6 @@ struct ContentView: View {
         case .speakerCountdown:
             SpeakerCountdownView(onNext: { screen = .speakerSession })
                 .frame(width: 400, height: 300)
-                .fixedSize()
-
-        case .speakerSession:
-            Color.clear
-                .frame(width: 1, height: 1)
                 .fixedSize()
 
         case .speakerRecording:
@@ -90,8 +93,16 @@ struct ContentView: View {
         ) {
             CuePreviewView()
         }
+        .task {
+            if appModel.immersiveSpaceState == .closed {
+                appModel.immersiveSpaceState = .inTransition
+                await openImmersiveSpace(id: appModel.immersiveSpaceID)
+                appModel.immersiveSpaceState = .open
+            }
+        }
+            CuePreviewView()
+        }
     }
-}
 
 enum UserRole: String {
     case speaker = "Speaker"
