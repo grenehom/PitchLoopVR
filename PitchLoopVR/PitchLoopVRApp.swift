@@ -11,17 +11,12 @@ import SwiftUI
 struct PitchLoopVRApp: App {
     
     @State private var appModel = AppModel()
-    @State private var avPlayerViewModel = AVPlayerViewModel()
     @State private var audienceFeedbackModel = AudienceFeedbackModel()
- // WindowGroup handles the large background handled in the room. Floating behavior 
+
     var body: some Scene {
         WindowGroup(id: "main") {
-            if avPlayerViewModel.isPlaying {
-                AVPlayerView(viewModel: avPlayerViewModel)
-            } else {
-                ContentView()
-                    .environment(appModel)
-            }
+            ContentView()
+                .environment(appModel)
         }
         .windowResizability(.contentSize)
 
@@ -43,17 +38,5 @@ struct PitchLoopVRApp: App {
         }
         .windowResizability(.contentSize)
 
-        ImmersiveSpace(id: appModel.immersiveSpaceID) {
-            ImmersiveView()
-                .environment(appModel)
-                .onAppear {
-                    appModel.immersiveSpaceState = .open
-                    avPlayerViewModel.play()
-                }
-                .onDisappear {
-                    appModel.immersiveSpaceState = .closed
-                    avPlayerViewModel.reset()
-                }
-        }
-        .immersionStyle(selection: .constant(.full), in: .full)    }
+    }
 }

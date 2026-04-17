@@ -36,7 +36,7 @@ struct ContentView: View {
                 onNext: { screen = .speakerCueInstruction }
             )
             .frame(width: 640, height: 280)
-            .fixedSize()
+            .fixedSize() // Look into why I cant resize these windows when I drag the corner
 
         case .speakerCueInstruction:
             SpeakerCueInstructionView(
