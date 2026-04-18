@@ -7,6 +7,7 @@ enum AppScreen {
     case speakerStartSession
     case speakerCountdown
     case speakerSession
+    case speakerSummary
     case speakerRecording
     case audienceOnboarding
     case audienceReminder
@@ -18,11 +19,9 @@ enum AppScreen {
 struct ContentView: View {
     @State private var screen: AppScreen = .roleSelection
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(AppModel.self) private var appModel
     @Environment(AudienceFeedbackModel.self) private var feedbackModel
-
-    private var showCue: Bool {
-        screen == .speakerCueInstruction || screen == .speakerRecording
-    }
 
     var body: some View {
         Group {
@@ -40,7 +39,7 @@ struct ContentView: View {
                 onNext: { screen = .speakerCueInstruction }
             )
             .frame(width: 640, height: 280)
-            .fixedSize() // Look into why I cant resize these windows when I drag the corner
+            .fixedSize()
 
         case .speakerCueInstruction:
             SpeakerCueInstructionView(
@@ -64,6 +63,15 @@ struct ContentView: View {
             Color.clear
                 .frame(width: 1, height: 1)
                 .fixedSize()
+
+        case .speakerSummary:
+            PresentationSummaryView(onDone: {
+                dismissWindow(id: "speaker-session")
+                appModel.speakerSessionCompleted = false
+                screen = .roleSelection
+            })
+            .frame(width: 480)
+            .fixedSize()
 
         case .speakerRecording:
             SpeakerRecordingView()
@@ -121,15 +129,40 @@ struct ContentView: View {
             }
             }
         }
+        // Hide glass chrome during speaker session (plain window style on main)
+        .glassBackgroundEffect(displayMode: screen == .speakerSession ? .never : .implicit)
+        // Tutorial complete → move to reminder screen
         .onChange(of: feedbackModel.tutorialComplete) { _, complete in
             if complete { screen = .audienceReminder }
         }
-        .ornament(
-            visibility: showCue ? .visible : .hidden,
-            attachmentAnchor: .scene(.top),
-            contentAlignment: .bottom
-        ) {
-            CuePreviewView()
+        // Speaker ends session → transition main window to summary
+        .onChange(of: appModel.shouldEndSession) { _, end in
+            if end {
+                appModel.shouldEndSession = false
+                screen = .speakerSummary
+            }
+        }
+        // Open/close windows based on active screen
+        .onChange(of: screen) { _, newScreen in
+            // Cue preview pill (plain window)
+            let showCue = newScreen == .speakerCueInstruction || newScreen == .speakerRecording
+            if showCue {
+                openWindow(id: "cue-preview")
+            } else {
+                dismissWindow(id: "cue-preview")
+            }
+
+            // Speaker session controls (plain window; also dismisses main on appear)
+            if newScreen == .speakerSession {
+                openWindow(id: "speaker-session")
+            }
+
+            // Waiting-for-participants pill (plain window)
+            if newScreen == .speakerStartSession {
+                openWindow(id: "waiting-participants")
+            } else {
+                dismissWindow(id: "waiting-participants")
+            }
         }
     }
 }

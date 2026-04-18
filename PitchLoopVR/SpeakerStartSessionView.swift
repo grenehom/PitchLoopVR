@@ -3,11 +3,8 @@ import SwiftUI
 struct SpeakerStartSessionView: View {
     let onNext: () -> Void
 
-    @State private var participantCount = 1
-
     var body: some View {
         VStack(spacing: 0) {
-            // Icon
             Circle()
                 .stroke(Color.blue.opacity(0.8), lineWidth: 2)
                 .frame(width: 44, height: 44)
@@ -23,7 +20,7 @@ struct SpeakerStartSessionView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 460)
-                .padding(.bottom, 22)
+                .padding(.bottom, 28)
 
             Button(action: onNext) {
                 Text("Start Session")
@@ -31,28 +28,33 @@ struct SpeakerStartSessionView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 28)
                     .padding(.vertical, 10)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.blue)
-                    )
+                    .background(Capsule(style: .continuous).fill(Color.blue))
             }
             .buttonStyle(.plain)
         }
         .padding(40)
         .frame(maxWidth: 560)
-        .ornament(attachmentAnchor: .scene(.top), contentAlignment: .bottom) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 9, height: 9)
-                Text("Waiting for \(participantCount) participant\(participantCount == 1 ? "" : "s") to join")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.primary)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .glassBackgroundEffect(in: Capsule())
+    }
+}
+
+// Shown as a separate plain window above the main window
+struct WaitingParticipantsView: View {
+    var participantCount: Int = 1
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color.red)
+                .frame(width: 9, height: 9)
+            Text("Waiting for \(participantCount) participant\(participantCount == 1 ? "" : "s") to join")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.primary)
         }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 11)
+        .background(Capsule(style: .continuous).fill(Color.white.opacity(0.18)))
+        .overlay(Capsule(style: .continuous).stroke(Color.white.opacity(0.2), lineWidth: 1))
+        .padding(8)
     }
 }
 

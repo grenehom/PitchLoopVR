@@ -1,15 +1,8 @@
-//
-//  PitchLoopVRApp.swift
-//  PitchLoopVR
-//
-//  Created by Gennifer Hom on 3/23/26.
-//
-
 import SwiftUI
 
 @main
 struct PitchLoopVRApp: App {
-    
+
     @State private var appModel = AppModel()
     @State private var audienceFeedbackModel = AudienceFeedbackModel()
 
@@ -19,7 +12,62 @@ struct PitchLoopVRApp: App {
                 .environment(appModel)
                 .environment(audienceFeedbackModel)
         }
+        .windowStyle(.plain)
         .windowResizability(.contentSize)
+
+        // Plain windows (no glass chrome) ————————————————————————
+
+        WindowGroup(id: "speaker-session") {
+            SpeakerSessionView()
+                .environment(appModel)
+        }
+        .windowStyle(.plain)
+        .windowResizability(.contentSize)
+        .defaultWindowPlacement { _, context in
+            if let main = context.windows.first(where: { $0.id == "main" }) {
+                return WindowPlacement(.below(main))
+            }
+            return WindowPlacement()
+        }
+
+        WindowGroup(id: "session-notification") {
+            SessionNotificationWindow()
+                .environment(appModel)
+        }
+        .windowStyle(.plain)
+        .windowResizability(.contentSize)
+        .defaultWindowPlacement { _, context in
+            if let main = context.windows.first(where: { $0.id == "main" }) {
+                return WindowPlacement(.above(main))
+            }
+            return WindowPlacement()
+        }
+
+        WindowGroup(id: "cue-preview") {
+            CuePreviewView()
+        }
+        .windowStyle(.plain)
+        .windowResizability(.contentSize)
+        .defaultWindowPlacement { _, context in
+            if let main = context.windows.first(where: { $0.id == "main" }) {
+                return WindowPlacement(.above(main))
+            }
+            return WindowPlacement()
+        }
+
+        WindowGroup(id: "waiting-participants") {
+            WaitingParticipantsView()
+        }
+        .windowStyle(.plain)
+        .windowResizability(.contentSize)
+        .defaultWindowPlacement { _, context in
+            if let main = context.windows.first(where: { $0.id == "main" }) {
+                return WindowPlacement(.above(main))
+            }
+            return WindowPlacement()
+        }
+
+        // Audience windows ————————————————————————————————————————
 
         WindowGroup(id: "live-question") {
             FeedbackQuestionView()
@@ -38,7 +86,5 @@ struct PitchLoopVRApp: App {
             }
             return WindowPlacement()
         }
-
-
     }
 }
