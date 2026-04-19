@@ -1,9 +1,168 @@
 import SwiftUI
 
+enum AppScreen {
+    case roleSelection
+    case speakerFeedback
+    case speakerCueInstruction
+    case speakerStartSession
+    case speakerCountdown
+    case speakerSession
+    case speakerSummary
+    case speakerRecording
+    case audienceOnboarding
+    case audienceReminder
+    case audienceReady
+    case audienceWaiting
+    case audienceFeedback
+}
+
 struct ContentView: View {
+    @State private var screen: AppScreen = .roleSelection
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(AppModel.self) private var appModel
+    @Environment(AudienceFeedbackModel.self) private var feedbackModel
+
     var body: some View {
-        NavigationStack {
-            RoleSelectionView()
+        Group {
+            switch screen {
+        case .roleSelection:
+            RoleSelectionView { role in
+                screen = (role == .audience) ? .audienceOnboarding : .speakerFeedback
+            }
+            .frame(width: 726, height: 281)
+            .fixedSize()
+
+        case .speakerFeedback:
+            SpeakerFeedbackView(
+                onDismiss: { screen = .roleSelection },
+                onNext: { screen = .speakerCueInstruction }
+            )
+            .frame(width: 640, height: 280)
+            .fixedSize()
+
+        case .speakerCueInstruction:
+            SpeakerCueInstructionView(
+                onDismiss: { screen = .roleSelection },
+                onNext: { screen = .speakerStartSession }
+            )
+            .frame(width: 640, height: 280)
+            .fixedSize()
+
+        case .speakerStartSession:
+            SpeakerStartSessionView(onNext: { screen = .speakerCountdown })
+                .frame(width: 640)
+                .fixedSize()
+
+        case .speakerCountdown:
+            SpeakerCountdownView(onNext: { screen = .speakerSession })
+                .frame(width: 400, height: 300)
+                .fixedSize()
+
+        case .speakerSession:
+            Color.clear
+                .frame(width: 1, height: 1)
+                .fixedSize()
+
+        case .speakerSummary:
+            PresentationSummaryView(onDone: {
+                dismissWindow(id: "speaker-session")
+                appModel.speakerSessionCompleted = false
+                screen = .roleSelection
+            })
+            .frame(width: 480)
+            .fixedSize()
+
+        case .speakerRecording:
+            SpeakerRecordingView()
+                .frame(width: 600, height: 700)
+                .fixedSize()
+
+        case .audienceOnboarding:
+            AudienceOnboardingView(
+                onDismiss: { screen = .roleSelection },
+                onNext: {
+                    feedbackModel.isTutorialMode = true
+                    feedbackModel.tutorialStep = 0
+                    feedbackModel.tutorialComplete = false
+                    feedbackModel.liveSessionStarted = false
+                    screen = .audienceFeedback
+                    openWindow(id: "audience-feedback")
+                }
+            )
+            .frame(width: 640, height: 280)
+            .fixedSize()
+
+        case .audienceReminder:
+            AudienceReminderView(
+                onDismiss: { screen = .roleSelection },
+                onNext: { screen = .audienceReady }
+            )
+            .frame(width: 640, height: 280)
+            .fixedSize()
+
+        case .audienceReady:
+            AudienceReadyView(
+                onDismiss: { screen = .roleSelection },
+                onBack: { screen = .audienceReminder },
+                onReady: { screen = .audienceWaiting }
+            )
+            .frame(width: 640)
+            .fixedSize()
+
+        case .audienceWaiting:
+            AudienceWaitingView(onNext: {
+                feedbackModel.liveSessionStarted = true
+                screen = .audienceFeedback
+            })
+            .fixedSize()
+
+        case .audienceFeedback:
+            if feedbackModel.isTutorialMode && feedbackModel.activeFeedbackItem != nil {
+                FeedbackQuestionView()
+                    .frame(width: 360)
+                    .fixedSize()
+            } else {
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .fixedSize()
+            }
+            }
+        }
+        // Hide glass chrome during speaker session (plain window style on main)
+        .glassBackgroundEffect(displayMode: screen == .speakerSession ? .never : .implicit)
+        // Tutorial complete → move to reminder screen
+        .onChange(of: feedbackModel.tutorialComplete) { _, complete in
+            if complete { screen = .audienceReminder }
+        }
+        // Speaker ends session → transition main window to summary
+        .onChange(of: appModel.shouldEndSession) { _, end in
+            if end {
+                appModel.shouldEndSession = false
+                screen = .speakerSummary
+            }
+        }
+        // Open/close windows based on active screen
+        .onChange(of: screen) { _, newScreen in
+            // Cue preview pill (plain window)
+            let showCue = newScreen == .speakerCueInstruction || newScreen == .speakerRecording
+            if showCue {
+                openWindow(id: "cue-preview")
+            } else {
+                dismissWindow(id: "cue-preview")
+            }
+
+            // Speaker session controls (plain window; also dismisses main on appear)
+            if newScreen == .speakerSession {
+                openWindow(id: "speaker-session")
+            }
+
+            // Waiting-for-participants pill (plain window)
+            if newScreen == .speakerStartSession {
+                openWindow(id: "waiting-participants")
+            } else {
+                dismissWindow(id: "waiting-participants")
+            }
         }
     }
 }
@@ -14,8 +173,8 @@ enum UserRole: String {
 }
 
 struct RoleSelectionView: View {
+    let onNavigate: (UserRole) -> Void
     @State private var selectedRole: UserRole? = nil
-    @State private var goToNext = false
 
     var body: some View {
         VStack(spacing: 54) {
@@ -30,7 +189,7 @@ struct RoleSelectionView: View {
                     isSelected: selectedRole == .speaker
                 ) {
                     selectedRole = .speaker
-                    goToNext = true
+                    onNavigate(.speaker)
                 }
 
                 RoleButton(
@@ -38,19 +197,12 @@ struct RoleSelectionView: View {
                     isSelected: selectedRole == .audience
                 ) {
                     selectedRole = .audience
-                    goToNext = true
+                    onNavigate(.audience)
                 }
             }
         }
         .frame(maxWidth: 520)
         .padding()
-        .navigationDestination(isPresented: $goToNext) {
-            if selectedRole == .audience {
-                AudienceFeedbackView()
-            } else {
-                SpeakerFeedbackView()
-            }
-        }
     }
 }
 

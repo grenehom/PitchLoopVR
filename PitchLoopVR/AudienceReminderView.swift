@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SpeakerFeedbackView: View {
+struct AudienceReminderView: View {
     let onDismiss: () -> Void
     let onNext: () -> Void
 
@@ -10,17 +10,16 @@ struct SpeakerFeedbackView: View {
                 .font(.system(size: 38, weight: .regular))
                 .foregroundStyle(.blue)
 
-            Text("Before you begin")
+            Text("A few things to remember")
                 .font(.system(size: 26, weight: .bold))
                 .foregroundStyle(.primary)
 
-            Text("You'll receive feedback as you speak.\nSubtle cues will help you adjust in the moment.")
+            Text("During the session, you can flag each category up to 3 times. Your observations are recorded for the speaker's debrief and are not shared in real time.")
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .frame(maxWidth: 460)
-
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -37,11 +36,9 @@ struct SpeakerFeedbackView: View {
             .padding(.trailing, 12)
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            onNext()
-        }
+        .onTapGesture { onNext() }
         .ornament(attachmentAnchor: .scene(.bottom), contentAlignment: .top) {
-            Text("tap to continue")
+            Text("Pinch to continue")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.secondary)
         }
@@ -49,5 +46,5 @@ struct SpeakerFeedbackView: View {
 }
 
 #Preview {
-    SpeakerFeedbackView(onDismiss: {}, onNext: {})
+    AudienceReminderView(onDismiss: {}, onNext: {})
 }
