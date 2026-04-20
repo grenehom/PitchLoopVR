@@ -13,16 +13,9 @@ struct AudienceLiveFeedbackView: View {
     @Binding var hoveredItem: LiveFeedbackItem?
     var onSelect: (LiveFeedbackItem) -> Void = { _ in }
 
-    let items: [LiveFeedbackItem] = [
-        LiveFeedbackItem(icon: "waveform",    label: "Pace",        description: "Pinch to note how the pacing felt"),
-        LiveFeedbackItem(icon: "eye",         label: "Eye Contact", description: "Pinch to flag an eye contact issue"),
-        LiveFeedbackItem(icon: "hand.raised", label: "Gesture",     description: "Pinch to note a gesture concern"),
-        LiveFeedbackItem(icon: "clock",       label: "Timing",      description: "Pinch to note a timing issue"),
-    ]
-
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(items) { item in
+            ForEach(audienceFeedbackItems) { item in
                 let isHovered = hoveredItem?.id == item.id
 
                 VStack(spacing: 5) {
@@ -67,7 +60,7 @@ struct AudienceLiveFeedbackView: View {
     }
 }
 
-// MARK: - Window wrapper (owns hover state, tooltip ornament, question window)
+// MARK: - Window wrapper
 
 struct AudienceFeedbackWindow: View {
     @Environment(\.dismissWindow) private var dismissWindow
@@ -77,18 +70,39 @@ struct AudienceFeedbackWindow: View {
 
     var body: some View {
         AudienceLiveFeedbackView(hoveredItem: $hoveredItem) { item in
-            feedbackModel.activeFeedbackItem = item
-            dismissWindow(id: "feedback-question")
-            openWindow(id: "feedback-question")
+            guard !feedbackModel.isTutorialMode else { return }
+            if feedbackModel.activeFeedbackItem == nil {
+                feedbackModel.activeFeedbackItem = item
+                openWindow(id: "live-question")
+            } else {
+                feedbackModel.activeFeedbackItem = item
+            }
         }
+        .opacity(feedbackModel.isWaitingForSession ? 0.4 : 1.0)
+        .allowsHitTesting(!feedbackModel.isWaitingForSession)
         .padding(16)
         .frame(width: 340)
         .fixedSize()
         .onAppear {
-            dismissWindow(id: "main")
+            if feedbackModel.isTutorialMode {
+                openTutorialStep()
+            }
+            // Main window is kept open — it's reused for question display
+        }
+        .onChange(of: feedbackModel.tutorialStep) { _, _ in
+            if feedbackModel.isTutorialMode {
+                openTutorialStep()
+            }
+        }
+        .onChange(of: feedbackModel.liveSessionStarted) { _, started in
+            if started {
+                feedbackModel.isTutorialMode = false
+                hoveredItem = nil
+                dismissWindow(id: "main")
+            }
         }
         .ornament(
-            visibility: hoveredItem != nil ? .visible : .hidden,
+            visibility: hoveredItem != nil && !feedbackModel.isTutorialMode ? .visible : .hidden,
             attachmentAnchor: .scene(.top),
             contentAlignment: .bottom
         ) {
@@ -110,6 +124,13 @@ struct AudienceFeedbackWindow: View {
             .frame(width: 320)
             .glassBackgroundEffect(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
+    }
+
+    private func openTutorialStep() {
+        let item = audienceFeedbackItems[feedbackModel.tutorialStep]
+        feedbackModel.activeFeedbackItem = item
+        hoveredItem = item
+        // No openWindow — main window handles display via activeFeedbackItem
     }
 }
 

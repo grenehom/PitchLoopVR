@@ -21,7 +21,7 @@ private let feedbackContent: [String: (question: String, options: [String])] = [
 
 struct FeedbackQuestionView: View {
     @Environment(AudienceFeedbackModel.self) private var model
-    @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedOption: String? = nil
 
     var body: some View {
@@ -64,29 +64,59 @@ struct FeedbackQuestionView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.bottom, 28)
+                .padding(.bottom, model.isTutorialMode ? 0 : 28)
 
-                // Footer
-                Text("Pinch to continue after exploring all four items")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                // Footer — live mode only
+                if !model.isTutorialMode {
+                    Text("Pinch to continue after exploring all four items")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 28)
+                }
             }
             .padding(32)
             .frame(width: 360)
-            .overlay(alignment: .topTrailing) {
-                Button(action: {
-                    model.activeFeedbackItem = nil
-                    dismissWindow(id: "feedback-question")
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.primary.opacity(0.8))
-                        .frame(width: 32, height: 32)
-                }
-                .buttonStyle(.plain)
-                .padding(12)
+            // Tap to advance in tutorial mode
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if model.isTutorialMode { advanceTutorial() }
             }
+            // X button — live mode only
+            .overlay(alignment: .topTrailing) {
+                if !model.isTutorialMode {
+                    Button(action: { model.activeFeedbackItem = nil; dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.primary.opacity(0.8))
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(12)
+                }
+            }
+            // "Pinch to continue" hint — tutorial mode only
+            .ornament(
+                visibility: model.isTutorialMode ? .visible : .hidden,
+                attachmentAnchor: .scene(.bottom),
+                contentAlignment: .top
+            ) {
+                Text(model.isLastTutorialItem ? "Pinch to finish" : "Pinch to continue")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .onChange(of: model.tutorialStep) { _, _ in
+                selectedOption = nil
+            }
+        }
+    }
+
+    private func advanceTutorial() {
+        if model.isLastTutorialItem {
+            model.activeFeedbackItem = nil
+            model.tutorialComplete = true
+        } else {
+            model.tutorialStep += 1
         }
     }
 }

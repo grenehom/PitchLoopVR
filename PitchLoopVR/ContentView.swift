@@ -9,8 +9,12 @@ enum AppScreen {
     case speakerStartSession
     case speakerCountdown
     case speakerSession
+    case speakerSummary
     case speakerRecording
     case audienceOnboarding
+    case audienceReminder
+    case audienceReady
+    case audienceWaiting
     case audienceFeedback
 }
 
@@ -18,12 +22,9 @@ struct ContentView: View {
     @State private var screen: AppScreen = .roleSelection
     
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.openImmersiveSpace) private var openImmersiveSpace
+    @Environment(\.dismissWindow) private var dismissWindow
     @Environment(AppModel.self) private var appModel
-
-    private var showCue: Bool {
-        screen == .speakerCueInstruction || screen == .speakerRecording
-    }
+    @Environment(AudienceFeedbackModel.self) private var feedbackModel
 
     var body: some View {
         Group {
@@ -64,6 +65,20 @@ struct ContentView: View {
                 .frame(width: 400, height: 300)
                 .fixedSize()
 
+        case .speakerSession:
+            Color.clear
+                .frame(width: 1, height: 1)
+                .fixedSize()
+
+        case .speakerSummary:
+            PresentationSummaryView(onDone: {
+                dismissWindow(id: "speaker-session")
+                appModel.speakerSessionCompleted = false
+                screen = .roleSelection
+            })
+            .frame(width: 480)
+            .fixedSize()
+
         case .speakerRecording:
             SpeakerRecordingView()
                 .frame(width: 600, height: 700)
@@ -73,6 +88,10 @@ struct ContentView: View {
             AudienceOnboardingView(
                 onDismiss: { screen = .roleSelection },
                 onNext: {
+                    feedbackModel.isTutorialMode = true
+                    feedbackModel.tutorialStep = 0
+                    feedbackModel.tutorialComplete = false
+                    feedbackModel.liveSessionStarted = false
                     screen = .audienceFeedback
                     openWindow(id: "audience-feedback")
                 }
@@ -80,18 +99,76 @@ struct ContentView: View {
             .frame(width: 640, height: 280)
             .fixedSize()
 
+        case .audienceReminder:
+            AudienceReminderView(
+                onDismiss: { screen = .roleSelection },
+                onNext: { screen = .audienceReady }
+            )
+            .frame(width: 640, height: 280)
+            .fixedSize()
+
+        case .audienceReady:
+            AudienceReadyView(
+                onDismiss: { screen = .roleSelection },
+                onBack: { screen = .audienceReminder },
+                onReady: { screen = .audienceWaiting }
+            )
+            .frame(width: 640)
+            .fixedSize()
+
+        case .audienceWaiting:
+            AudienceWaitingView(onNext: {
+                feedbackModel.liveSessionStarted = true
+                screen = .audienceFeedback
+            })
+            .fixedSize()
+
         case .audienceFeedback:
-            Color.clear
-                .frame(width: 1, height: 1)
-                .fixedSize()
+            if feedbackModel.isTutorialMode && feedbackModel.activeFeedbackItem != nil {
+                FeedbackQuestionView()
+                    .frame(width: 360)
+                    .fixedSize()
+            } else {
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .fixedSize()
+            }
             }
         }
-        .ornament(
-            visibility: showCue ? .visible : .hidden,
-            attachmentAnchor: .scene(.top),
-            contentAlignment: .bottom
-        ) {
-            CuePreviewView()
+        // Hide glass chrome during speaker session (plain window style on main)
+        .glassBackgroundEffect(displayMode: screen == .speakerSession ? .never : .implicit)
+        // Tutorial complete → move to reminder screen
+        .onChange(of: feedbackModel.tutorialComplete) { _, complete in
+            if complete { screen = .audienceReminder }
+        }
+        // Speaker ends session → transition main window to summary
+        .onChange(of: appModel.shouldEndSession) { _, end in
+            if end {
+                appModel.shouldEndSession = false
+                screen = .speakerSummary
+            }
+        }
+        // Open/close windows based on active screen
+        .onChange(of: screen) { _, newScreen in
+            // Cue preview pill (plain window)
+            let showCue = newScreen == .speakerCueInstruction || newScreen == .speakerRecording
+            if showCue {
+                openWindow(id: "cue-preview")
+            } else {
+                dismissWindow(id: "cue-preview")
+            }
+
+            // Speaker session controls (plain window; also dismisses main on appear)
+            if newScreen == .speakerSession {
+                openWindow(id: "speaker-session")
+            }
+
+            // Waiting-for-participants pill (plain window)
+            if newScreen == .speakerStartSession {
+                openWindow(id: "waiting-participants")
+            } else {
+                dismissWindow(id: "waiting-participants")
+            }
         }
         .task {
             if appModel.immersiveSpaceState == .closed {
