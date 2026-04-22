@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum AppScreen {
+enum AppScreen: Equatable {
     case roleSelection
     case speakerFeedback
     case speakerCueInstruction
@@ -8,7 +8,8 @@ enum AppScreen {
     case speakerCountdown
     case speakerSession
     case speakerSummary
-    case speakerRecording
+    case speakerScorecard
+    case speakerFeedbackReview(String)
     case audienceOnboarding
     case audienceReminder
     case audienceReady
@@ -65,18 +66,32 @@ struct ContentView: View {
                 .fixedSize()
 
         case .speakerSummary:
-            PresentationSummaryView(onDone: {
-                dismissWindow(id: "speaker-session")
-                appModel.speakerSessionCompleted = false
-                screen = .roleSelection
-            })
+            PresentationSummaryView(
+                onDone: {
+                    dismissWindow(id: "speaker-session")
+                    appModel.speakerSessionCompleted = false
+                    screen = .roleSelection
+                },
+                onScorecard: { screen = .speakerScorecard }
+            )
             .frame(width: 480)
             .fixedSize()
 
-        case .speakerRecording:
-            SpeakerRecordingView()
-                .frame(width: 600, height: 700)
-                .fixedSize()
+        case .speakerScorecard:
+            SpeakerScorecardView(
+                onBack: { screen = .speakerSummary },
+                onReview: { title in screen = .speakerFeedbackReview(title) }
+            )
+            .frame(width: 780, height: 560)
+            .fixedSize()
+
+        case .speakerFeedbackReview(let title):
+            FeedbackReviewView(
+                title: title,
+                onBack: { screen = .speakerScorecard }
+            )
+            .frame(width: 560, height: 680)
+            .fixedSize()
 
         case .audienceOnboarding:
             AudienceOnboardingView(
@@ -130,22 +145,23 @@ struct ContentView: View {
             }
         }
         // Hide glass chrome during speaker session (plain window style on main)
-        .glassBackgroundEffect(displayMode: screen == .speakerSession ? .never : .implicit)
+        .glassBackgroundEffect(displayMode: { if case .speakerSession = screen { return .never }; return .implicit }())
         // Tutorial complete → move to reminder screen
-        .onChange(of: feedbackModel.tutorialComplete) { _, complete in
-            if complete { screen = .audienceReminder }
+        .onChange(of: feedbackModel.tutorialComplete) {
+            if feedbackModel.tutorialComplete { screen = .audienceReminder }
         }
         // Speaker ends session → transition main window to summary
-        .onChange(of: appModel.shouldEndSession) { _, end in
-            if end {
+        .onChange(of: appModel.shouldEndSession) {
+            if appModel.shouldEndSession {
                 appModel.shouldEndSession = false
                 screen = .speakerSummary
             }
         }
         // Open/close windows based on active screen
-        .onChange(of: screen) { _, newScreen in
+        .onChange(of: screen) {
+            let newScreen = screen
             // Cue preview pill (plain window)
-            let showCue = newScreen == .speakerCueInstruction || newScreen == .speakerRecording
+            let showCue = newScreen == .speakerCueInstruction
             if showCue {
                 openWindow(id: "cue-preview")
             } else {

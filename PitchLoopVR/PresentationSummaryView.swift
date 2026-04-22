@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PresentationSummaryView: View {
     let onDone: () -> Void
+    let onScorecard: () -> Void
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -28,7 +29,7 @@ struct PresentationSummaryView: View {
                     .lineSpacing(3)
                     .padding(.bottom, 32)
 
-                Button(action: {}) {
+                Button(action: onScorecard) {
                     Text("View Score Card")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.white)
@@ -54,5 +55,5 @@ struct PresentationSummaryView: View {
 }
 
 #Preview {
-    PresentationSummaryView(onDone: {})
+    PresentationSummaryView(onDone: {}, onScorecard: {})
 }
