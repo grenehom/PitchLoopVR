@@ -41,8 +41,8 @@ struct SpeakerView: View {
 
                 // "End Presentation" button — below the badge
                 Button("End Presentation") {
-                    feedbackStore.clearAll()
-                    onLeave()
+                    feedbackStore.endSession()  // sets sessionEnded = true, clears pending
+                    onLeave()                   // speaker exits — don't call clearAll here
                 }
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(.primary)

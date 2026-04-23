@@ -130,6 +130,7 @@ class FeedbackStore: ObservableObject {
 
     @Published var pendingFeedback: [FeedbackMessage] = []
     @Published var feedbackHistory: [FeedbackMessage] = []
+    @Published var sessionEnded: Bool = false
 
     // Audience calls this with the type AND the chosen option
     func send(type: FeedbackType, option: FeedbackOption) {
@@ -142,9 +143,22 @@ class FeedbackStore: ObservableObject {
     func dismiss(message: FeedbackMessage) {
         pendingFeedback.removeAll { $0.id == message.id }
     }
+    
+    // Speaker calls this when presentation ends so audience can submit final feedback.
+    func endSession() {          // ← ADD this
+            sessionEnded = true
+            pendingFeedback.removeAll()
+        }
 
     // Called when session ends
     func clearAll() {
-        pendingFeedback.removeAll()
+            sessionEnded = false     // ← ADD reset here
+            pendingFeedback.removeAll()
+        }
+
+
+    // Audience clears this when leaving or after moving to scorecard.
+    func resetSessionEndState() {
+        sessionEnded = false
     }
 }
