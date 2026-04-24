@@ -1,15 +1,3 @@
-/*
- SpeakerFeedbackOverlay.swift
- Live Interactions — PitchLoop VR
-
- Updated pill design to match image 2:
-   - Light/white .regularMaterial background (not dark)
-   - Left: white circle with colored SF Symbol icon
-   - Right: notificationText in dark text e.g. "Pace is too fast"
-   - Auto-dismisses after 5 seconds, tap to dismiss early
-   - Stacks vertically if multiple arrive at once
-*/
-
 import SwiftUI
 
 // MARK: - Overlay Container
@@ -18,10 +6,27 @@ struct SpeakerFeedbackOverlay: View {
 
     @EnvironmentObject var feedbackStore: FeedbackStore
 
+    // Tracks when each notificationText was last shown to the speaker
+    @State private var lastShownAt: [String: Date] = [:]
+
+    private let dedupeWindow: TimeInterval = 20
+
+    // Filters pendingFeedback to only show ones not shown in the last 20s
+    private var displayQueue: [FeedbackMessage] {
+        feedbackStore.pendingFeedback.filter { message in
+            guard let lastDate = lastShownAt[message.notificationText] else {
+                return true // never shown before — show it
+            }
+            return Date().timeIntervalSince(lastDate) >= dedupeWindow
+        }
+    }
+
     var body: some View {
         VStack(spacing: 10) {
-            ForEach(feedbackStore.pendingFeedback) { message in
+            if let message = displayQueue.first {
                 FeedbackBanner(message: message) {
+                    // Record when this text was shown
+                    lastShownAt[message.notificationText] = Date()
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         feedbackStore.dismiss(message: message)
                     }
@@ -32,23 +37,16 @@ struct SpeakerFeedbackOverlay: View {
                         removal:   .move(edge: .top).combined(with: .opacity)
                     )
                 )
+                .id(message.id)
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8),
-                   value: feedbackStore.pendingFeedback.count)
+                   value: displayQueue.first?.id)
     }
 }
 
 // MARK: - Notification Pill
 
-/*
- Matches image 2 exactly:
-   - Light material pill (regularMaterial — white/frosted in visionOS)
-   - Left: white circle containing the SF Symbol icon (with colored tint)
-   - Right: notificationText e.g. "Pace is too fast"
-   - Tap anywhere to dismiss early
-   - Auto-dismisses after 5 seconds with fade
-*/
 struct FeedbackBanner: View {
 
     let message: FeedbackMessage
@@ -59,19 +57,14 @@ struct FeedbackBanner: View {
     var body: some View {
         Button(action: onDismiss) {
             HStack(spacing: 12) {
-
-                // Circular icon — white circle with colored icon inside
                 ZStack {
                     Circle()
                         .fill(.white)
                         .frame(width: 40, height: 40)
                         .shadow(color: .black.opacity(0.08), radius: 2)
-
                     Text(message.type.emoji)
                         .font(.system(size: 22))
                 }
-
-                // Notification text — dark, matches image 2
                 Text(message.notificationText)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.primary)
@@ -84,17 +77,15 @@ struct FeedbackBanner: View {
         .buttonStyle(.plain)
         .opacity(opacity)
         .onAppear {
-            // Fade in
             withAnimation(.easeOut(duration: 0.25)) {
                 opacity = 1
             }
-            // Auto-dismiss after 5 seconds
             Task {
-                try? await Task.sleep(for: .seconds(4.5))
-                withAnimation(.easeIn(duration: 0.5)) {
+                try? await Task.sleep(for: .seconds(4))
+                withAnimation(.easeIn(duration: 0.4)) {
                     opacity = 0
                 }
-                try? await Task.sleep(for: .seconds(0.5))
+                try? await Task.sleep(for: .seconds(0.4))
                 onDismiss()
             }
         }

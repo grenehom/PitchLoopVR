@@ -19,7 +19,7 @@ struct SpeakerView: View {
     var body: some View {
         ZStack(alignment: .top) {
 
-            // ── Top-left: Presenting badge + End Presentation button ─
+            // ─ Top-left: Presenting badge + End Presentation button ─
             // Matches image 2: stacked vertically, top-left corner
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -41,8 +41,8 @@ struct SpeakerView: View {
 
                 // "End Presentation" button — below the badge
                 Button("End Presentation") {
-                    feedbackStore.endSession()  // sets sessionEnded = true, clears pending
-                    onLeave()                   // speaker exits — don't call clearAll here
+                    feedbackStore.endSession()
+                    onLeave()
                 }
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(.primary)
